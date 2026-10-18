@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GameZone India | Play Free Games</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#090d18;--panel:#141c30;--text:#f7f8ff;--muted:#9caac5;--accent:#8b5cf6;--cyan:#22d3ee}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+header{padding:22px 5%;background:linear-gradient(120deg,#171333,#10243b);border-bottom:1px solid #28344c;position:sticky;top:0;z-index:10}
+.logo{font-size:25px;font-weight:900;color:white}.logo span{color:var(--cyan)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+.search{padding:12px 15px;border:1px solid #394761;border-radius:12px;background:#0b1222;color:white;width:min(100%,300px)}
+.hero{margin:25px auto;padding:32px 20px;width:90%;border-radius:24px;background:radial-gradient(circle at 85% 10%,#4c1d95,transparent 40%),linear-gradient(120deg,#18274a,#101526);border:1px solid #354269}
+.hero h1{font-size:clamp(30px,6vw,54px);margin:0 0 12px}
+.hero p{color:#c2cde3;line-height:1.6}
+button{cursor:pointer;border:0;border-radius:10px;padding:12px 17px;font-weight:bold}
+.primary{background:linear-gradient(100deg,#8b5cf6,#06b6d4);color:white}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:20px 5%}
+.filters button{background:#182238;color:#cbd5e1;border:1px solid #334155}
+.filters button.active{background:#7c3aed;color:white}
+.section{margin:25px 5%}
+.section h2{font-size:23px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:16px}
+.card{background:linear-gradient(145deg,#19243a,#101726);border:1px solid #283750;border-radius:17px;padding:14px;cursor:pointer;transition:.2s;min-width:0}
+.card:hover{transform:translateY(-5px) scale(1.02);border-color:#8b5cf6;box-shadow:0 12px 28px #0005}
+.cover{height:115px;display:grid;place-items:center;font-size:55px;border-radius:12px;background:linear-gradient(135deg,#263d65,#45236b);margin-bottom:12px}
+.card h3{margin:5px 0 7px;font-size:16px}
+.card p{margin:0;color:var(--muted);font-size:12px}
+.card button{width:100%;margin-top:12px;background:#273755;color:white}
+#playArea{display:none;margin:25px 5%;padding:18px;background:#121a2b;border:1px solid #334155;border-radius:18px}
+.gameTop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#gameCanvas{display:block;width:100%;max-width:700px;height:auto;aspect-ratio:7/5;background:#050b16;border-radius:12px;margin:15px auto;touch-action:none}
+#gameUI{text-align:center}
+#gameUI button{margin:4px;background:#273755;color:white}
+#gameUI input{padding:10px;border-radius:8px;border:1px solid #475569;background:#0b1222;color:white}
+#gameText{font-size:20px;margin:12px 0}
+#gameHelp{color:#b8c6dc;line-height:1.6;text-align:center}
+footer{text-align:center;padding:35px;color:#8391aa}
+.hidden{display:none!important}
+@media(max-width:500px){header{padding:15px}.hero{padding:25px 18px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cover{height:90px;font-size:45px}.card{padding:10px}.search{width:100%}}
+</style>
+</head>
+<body>
+<header>
+ <div class="top">
+  <div class="logo">🎮 GameZone <span>India</span></div>
+  <input class="search" id="search" placeholder="🔍 Search games..." aria-label="Search games">
+ </div>
+</header>
+
+<section class="hero">
+ <h1>PLAY. COMPETE. <span style="color:#67e8f9">REPEAT.</span></h1>
+ <p>Discover mini games, beat your high scores and have fun. Free browser games, made for mobile and desktop.</p>
+ <button class="primary" onclick="document.getElementById('games').scrollIntoView({behavior:'smooth'})">🎮 Explore Games</button>
+</section>
+
+<div class="filters" id="filters">
+ <button class="active" data-cat="All">All Games</button>
+ <button data-cat="Racing">🏎️ Racing</button>
+ <button data-cat="Arcade">👾 Arcade</button>
+ <button data-cat="Puzzle">🧩 Puzzle</button>
+ <button data-cat="Sports">🏓 Sports</button>
+ <button data-cat="Education">🧠 Education</button>
+</div>
+
+<section class="section" id="games">
+ <h2>🔥 All Games <span style="color:#8b9ab6;font-size:14px" id="count"></span></h2>
+ <div class="grid" id="grid"></div>
+</section>
+
+<section id="playArea">
+ <div class="gameTop">
+  <h2 id="gameTitle">Game</h2>
+  <button onclick="closeGame()" style="background:#7f1d1d;color:white">✕ Close Game</button>
+ </div>
+ <div id="gameText"></div>
+ <canvas id="gameCanvas" width="700" height="500"></canvas>
+ <div id="gameUI"></div>
+ <p id="gameHelp"></p>
+</section>
+
+<footer>🎮 GameZone India · Made for gamers ❤️<br><br>Free browser mini-games · No account required</footer>
+
+<script>
+const games=[
+ {id:'car',name:'Car Racing',icon:'🏎️',cat:'Racing',desc:'Dodge traffic and survive.'},
+ {id:'bike',name:'Bike Racing',icon:'🏍️',cat:'Racing',desc:'Ride through obstacles.'},
+ {id:'snake',name:'Snake Game',icon:'🐍',cat:'Arcade',desc:'Eat food and grow.'},
+ {id:'break',name:'Block Breaker',icon:'🧱',cat:'Arcade',desc:'Break every block.'},
+ {id:'pong',name:'Ping Pong',icon:'🏓',cat:'Sports',desc:'Beat the computer.'},
+ {id:'memory',name:'Memory Puzzle',icon:'🧩',cat:'Puzzle',desc:'Match all the pairs.'},
+ {id:'tic',name:'Tic-Tac-Toe',icon:'❌',cat:'Puzzle',desc:'Play against a friend.'},
+ {id:'math',name:'Math Challenge',icon:'🧠',cat:'Education',desc:'Solve equations quickly.'},
+ {id:'space',name:'Space Shooter',icon:'🚀',cat:'Arcade',desc:'Shoot the incoming enemies.'},
+ {id:'runner',name:'Endless Runner',icon:'🏃',cat:'Arcade',desc:'Jump over obstacles.'}
+];
+const grid=document.getElementById('grid'),search=document.getElementById('search');
+let category='All';
+function render(){
+ let q=search.value.toLowerCase();
+ let list=games.filter(g=>(category==='All'||g.cat===category)&&(g.name+' '+g.cat).toLowerCase().includes(q));
+ grid.innerHTML=list.map(g=>`<article class="card" onclick="startGame('${g.id}')"><div class="cover">${g.icon}</div><h3>${g.name}</h3><p>${g.desc}</p><button>▶ Play Now</button></article>`).join('');
+ document.getElementById('count').textContent='('+list.length+')';
+}
+document.querySelectorAll('#filters button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active');category=b.dataset.cat;render();
+});
+search.addEventListener('input',render);render();
+
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
+const ui=document.getElementById('gameUI'),help=document.getElementById('gameHelp');
+let loop=null,keys={},cleanup=null,score=0;
+function base(id){
+ if(loop)clearInterval(loop);loop=null;
+ if(cleanup){cleanup();cleanup=null}
+ keys={};score=0;ctx.clearRect(0,0,700,500);ui.innerHTML='';
+ const g=games.find(x=>x.id===id);
+ document.getElementById('gameTitle').textContent=g.name;
+ document.getElementById('playArea').style.display='block';
+ document.getElementById('playArea').scrollIntoView({behavior:'smooth'});
+ document.getElementById('gameText').textContent='Score: 0';
+ help.textContent='Use the on-screen buttons or your keyboard. Tap Restart to play again.';
+}
+function scoreText(){document.getElementById('gameText').textContent='Score: '+score}
+function btn(txt,fn){let b=document.createElement('button');b.textContent=txt;b.onclick=fn;ui.appendChild(b);return b}
+function restartButton(id){btn('🔄 Restart',()=>startGame(id))}
+function background(){
+ ctx.fillStyle='#050b16';ctx.fillRect(0,0,700,500);
+}
+function startGame(id){
+ base(id);
+ if(id==='car'||id==='bike')racer(id);
+ else if(id==='snake')snake();
+ else if(id==='break')breaker();
+ else if(id==='pong')pong();
+ else if(id==='memory')memory();
+ else if(id==='tic')tic();
+ else if(id==='math')mathGame();
+ else if(id==='space')space();
+ else if(id==='runner')runner();
+}
+function closeGame(){
+ if(loop)clearInterval(loop);loop=null;
+ if(cleanup)cleanup();cleanup=null;
+ document.getElementById('playArea').style.display='none';
+}
+function racer(id){
+ let x=320,ob=[],tick=0,dead=false;
+ btn('⬅️ Left',()=>x=Math.max(190,x-35));btn('Right ➡️',()=>x=Math.min(440,x+35));restartButton(id);
+ function draw(){
+ background();ctx.fillStyle='#25334c';ctx.fillRect(170,0,360,500);
+ ctx.strokeStyle='#fff';ctx.lineWidth=5;ctx.setLineDash([25,25]);ctx.beginPath();ctx.moveTo(350,0);ctx.lineTo(350,500);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#22d3ee';ctx.fillRect(x,405,42,65);
+ ctx.fillStyle='#f97316';ob.forEach(o=>ctx.fillRect(o.x,o.y,45,60));
+ ctx.fillStyle='#fff';ctx.font='18px Arial';ctx.fillText('Score: '+score,15,30);
+ }
+ function step(){
+ if(dead)return;tick++;
+ if(keys.ArrowLeft||keys.a)x=Math.max(185,x-5);
+ if(keys.ArrowRight||keys.d)x=Math.min(470,x+5);
+ if(tick%35===0)ob.push({x:190+Math.floor(Math.random()*7)*42,y:-60});
+ ob.forEach(o=>o.y+=5);
+ ob=ob.filter(o=>o.y<530);
+ if(ob.some(o=>o.y>350&&o.y<470&&Math.abs(o.x-x)<38)){
+ dead=true;clearInterval(loop);loop=null;help.textContent='Game over! Press Restart to try again.';return;
+ }
+ score+=1;scoreText();draw();
+ }
+ draw();loop=setInterval(step,30);
+}
+function snake(){
+ let s=[{x:8,y:8}],d={x:1,y:0},food={x:14,y:8},dead=false;
+ btn('⬆️',()=>{if(d.y!==1)d={x:0,y:-1}});btn('⬅️',()=>{if(d.x!==1)d={x:-1,y:0}});
+ btn('⬇️',()=>{if(d.y!==-1)d={x:0,y:1}});btn('➡️',()=>{if(d.x!==-1)d={x:1,y:0}});
+ restartButton('snake');
+ function draw(){
+ background();ctx.fillStyle='#22c55e';s.forEach(p=>ctx.fillRect(p.x*25,p.y*25,22,22));
+ ctx.fillStyle='#fb7185';ctx.fillRect(food.x*25,food.y*25,22,22);
+ }
+ function step(){
+ if(dead)return;
+ if(keys.ArrowLeft&&d.x!==1)d={x:-1,y:0};if(keys.ArrowRight&&d.x!==-1)d={x:1,y:0};
+ if(keys.ArrowUp&&d.y!==1)d={x:0,y:-1};if(keys.ArrowDown&&d.y!==-1)d={x:0,y:1};
+ let h={x:s[0].x+d.x,y:s[0].y+d.y};
+ if(h.x<0||h.x>=28||h.y<0||h.y>=20||s.some(p=>p.x===h.x&&p.y===h.y)){dead=true;clearInterval(loop);loop=null;help.textContent='Game over! Press Restart.';return}
+ s.unshift(h);
+ if(h.x===food.x&&h.y===food.y){score+=10;food={x:Math.floor(Math.random()*26)+1,y:Math.floor(Math.random()*18)+1};scoreText()}else s.pop();
+ draw();
+ }
+ draw();loop=setInterval(step,130);
+}
+function breaker(){
+ let x=310,ball={x:350,y:350,dx:4,dy:-4},paddle=290,br=[],dead=false;
+ for(let r=0;r<4;r++)for(let c=0;c<8;c++)br.push({x:38+c*79,y:45+r*27,on:true});
+ btn('⬅️',()=>paddle=Math.max(0,paddle-35));btn('➡️',()=>paddle=Math.min(600,paddle+35));restartButton('break');
+ function draw(){
+ background();br.forEach((b,i)=>{if(b.on){ctx.fillStyle=['#8b5cf6','#06b6d4','#f97316','#22c55e'][i%4];ctx.fillRect(b.x,b.y,65,17)}});
+ ctx.fillStyle='#fff';ctx.fillRect(paddle,460,110,14);
+ ctx.beginPath();ctx.arc(ball.x,ball.y,9,0,7);ctx.fill();
+ }
+ function step(){
+ if(dead)return;
+ if(keys.ArrowLeft)paddle=Math.max(0,paddle-7);if(keys.ArrowRight)paddle=Math.min(590,paddle+7);
+ ball.x+=ball.dx;ball.y+=ball.dy;
+ if(ball.x<9||ball.x>691)ball.dx*=-1;if(ball.y<9)ball.dy=Math.abs(ball.dy);
+ if(ball.y>450&&ball.x>paddle&&ball.x<paddle+110)ball.dy=-Math.abs(ball.dy);
+ for(let b of br)if(b.on&&ball.x>b.x&&ball.x<b.x+65&&ball.y>b.y&&ball.y<b.y+17){b.on=false;ball.dy*=-1;score+=10;scoreText();break}
+ if(ball.y>500){dead=true;clearInterval(loop);loop=null;help.textContent='Ball lost! Press Restart.'}
+ if(br.every(b=>!b.on)){dead=true;clearInterval(loop);loop=null;help.textContent='You win! Press Restart to play again.'}
+ draw();
+ }
+ draw();loop=setInterval(step,25);
+}
+function pong(){
+ let py=200,cy=200,ball={x:350,y:250,dx:4,dy:3},dead=false;
+ btn('⬆️ Move Up',()=>py=Math.max(0,py-30));btn('⬇️ Move Down',()=>py=Math.min(400,py+30));restartButton('pong');
+ function draw(){
+ background();ctx.fillStyle='#fff';ctx.fillRect(20,py,14,100);ctx.fillRect(666,cy,14,100);
+ ctx.beginPath();ctx.arc(ball.x,ball.y,9,0,7);ctx.fill();
+ ctx.font='32px Arial';ctx.fillText(score,325,40);
+ }
+ function step(){
+ if(dead)return;
+ if(keys.ArrowUp)py=Math.max(0,py-5);if(keys.ArrowDown)py=Math.min(400,py+5);
+ cy+=((ball.y-50)-cy)*.06;ball.x+=ball.dx;ball.y+=ball.dy;
+ if(ball.y<10||ball.y>490)ball.dy*=-1;
+ if(ball.x<40&&ball.y>py&&ball.y<py+100){ball.dx=Math.abs(ball.dx);score++;scoreText()}
+ if(ball.x>660&&ball.y>cy&&ball.y<cy+100)ball.dx=-Math.abs(ball.dx);
+ if(ball.x<0||ball.x>700){dead=true;clearInterval(loop);loop=null;help.textContent='Round over! Press Restart.'}
+ draw();
+ }
+ draw();loop=setInterval(step,25);
+}
+function memory(){
+ const icons=['🍎','🚀','🐱','⚽','🌟','🍕','🎮','🐼'];
+ let deck=[...icons,...icons].sort(()=>Math.random()-.5),opened=[],matched=[];
+ ui.innerHTML='';
+ let box=document.createElement('div');box.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:450px;margin:auto';
+ ui.appendChild(box);
+ deck.forEach((v,i)=>{
+ let b=document.createElement('button');b.textContent='❔';b.style.cssText='height:65px;font-size:25px;background:#273755;color:white';
+ b.onclick=()=>{
+ if(opened.length===2||matched.includes(i)||opened.includes(i))return;
+ b.textContent=v;opened.push(i);
+ if(opened.length===2){
+ if(deck[opened[0]]===deck[opened[1]]){
+ matched.push(...opened);opened=[];score+=10;scoreText();
+ if(matched.length===16)help.textContent='Amazing! You matched all pairs!';
+ }else setTimeout(()=>{opened.forEach(j=>box.children[j].textContent='❔');opened=[]},700);
+ }
+ };
+ box.appendChild(b);
+ });
+ restartButton('memory');
+ help.textContent='Tap two cards to find matching pairs.';
+}
+function tic(){
+ let cells=Array(9).fill(''),turn='X',done=false;
+ ui.innerHTML='';
+ const box=document.createElement('div');box.style.cssText='display:grid;grid-template-columns:repeat(3,75px);gap:6px;justify-content:center';
+ ui.appendChild(box);
+ function win(p){return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(a=>a.every(i=>cells[i]===p))}
+ function draw(){
+ box.innerHTML='';
+ cells.forEach((v,i)=>{let b=btn(v||' ',()=>{if(done||cells[i])return;cells[i]=turn;
+ if(win(turn)){done=true;help.textContent=turn+' wins!';score+=10;scoreText()}
+ else if(cells.every(Boolean)){done=true;help.textContent='Draw!'}
+ else turn=turn==='X'?'O':'X';
+ draw()});b.style.cssText='height:75px;font-size:30px;background:#273755;color:white';box.appendChild(b)});
+ }
+ draw();restartButton('tic');
+ help.textContent='Two-player mode: take turns on the same device.';
+}
+function mathGame(){
+ let answer=0;
+ function question(){
+ let a=Math.floor(Math.random()*20)+1,b=Math.floor(Math.random()*10)+1,op=Math.random()<.5?'+':'×';
+ answer=op==='+'?a+b:a*b;
+ document.getElementById('gameText').textContent=`Score: ${score} | Solve: ${a} ${op} ${b}`;
+ }
+ ui.innerHTML='';
+ const input=document.createElement('input');input.type='number';input.placeholder='Your answer';
+ ui.appendChild(input);
+ btn('Submit',()=>{
+ if(Number(input.value)===answer){score+=10;help.textContent='Correct! Great job! 🎉'}
+ else help.textContent='Not quite. Try the next question!';
+ scoreText();input.value='';question();
+ });
+ restartButton('math');question();
+}
+function space(){
+ let x=330,shots=[],enemies=[],tick=0,dead=false;
+ btn('⬅️',()=>x=Math.max(0,x-35));btn('Fire 🚀',()=>shots.push({x:x+15,y:420}));btn('➡️',()=>x=Math.min(660,x+35));restartButton('space');
+ function draw(){
+ background();ctx.fillStyle='#22d3ee';ctx.fillRect(x,430,40,45);
+ ctx.fillStyle='#facc15';shots.forEach(s=>ctx.fillRect(s.x,s.y,6,15));
+ ctx.fillStyle='#fb7185';enemies.forEach(e=>ctx.fillRect(e.x,e.y,30,25));
+ }
+ function step(){
+ if(dead)return;
+ if(keys.ArrowLeft)x=Math.max(0,x-6);if(keys.ArrowRight)x=Math.min(660,x+6);
+ if(keys[' ']){if(tick%9===0)shots.push({x:x+15,y:420})}
+ if(tick%30===0)enemies.push({x:Math.random()*660,y:-30});
+ shots.forEach(s=>s.y-=8);enemies.forEach(e=>e.y+=3);
+ enemies=enemies.filter(e=>{let hit=shots.some(s=>s.x>e.x-5&&s.x<e.x+30&&s.y<e.y+25&&s.y>e.y);if(hit){score+=10;scoreText();return false}return e.y<510});
+ shots=shots.filter(s=>s.y>0);
+ if(enemies.some(e=>e.y>405&&Math.abs(e.x-x)<35)){dead=true;clearInterval(loop);loop=null;help.textContent='Game over! Press Restart.'}
+ tick++;draw();
+ }
+ draw();loop=setInterval(step,30);
+}
+function runner(){
+ let y=400,vy=0,obs=[],tick=0,dead=false;
+ function jump(){if(y>=400)vy=-14}
+ btn('⬆️ Jump',jump);restartButton('runner');
+ function draw(){
+ background();ctx.fillStyle='#334155';ctx.fillRect(0,445,700,55);
+ ctx.fillStyle='#22d3ee';ctx.fillRect(100,y,38,45);
+ ctx.fillStyle='#fb7185';obs.forEach(o=>ctx.fillRect(o.x,410,30,35));
+ }
+ function step(){
+ if(dead)return;
+ if(keys.ArrowUp||keys[' '])jump();
+ vy+=.65;y=Math.min(400,y+vy);if(y>=400)vy=0;
+ if(tick%65===0)obs.push({x:710});
+ obs.forEach(o=>o.x-=6);obs=obs.filter(o=>o.x>-40);
+ if(obs.some(o=>o.x<140&&o.x>65&&y>370)){dead=true;clearInterval(loop);loop=null;help.textContent='Game over! Press Restart.'}
+ score++;scoreText();tick++;draw();
+ }
+ draw();loop=setInterval(step,30);
+}
+function setupTouchKeys(){
+ const down=e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)){keys[e.key]=true;if(e.key===' ')e.preventDefault()}};
+ const up=e=>{keys[e.key]=false};
+ window.addEventListener('keydown',down);window.addEventListener('keyup',up);
+ cleanup=()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up)}
+}
+const oldStart=startGame;
+startGame=function(id){if(cleanup){cleanup();cleanup=null}oldStart(id);setupTouchKeys()};
+</script>
+</body>
+</html>
